@@ -1,13 +1,57 @@
 import { useState } from 'react';
+import {
+  createStreamEntry,
+  filterEntries,
+  normalizeTitle,
+} from '../streamListUtils.js';
+
+const initialEntries = [
+  createStreamEntry('Stranger Things', 1),
+  { ...createStreamEntry('The Bear', 2), isComplete: true },
+  createStreamEntry('Abbott Elementary', 3),
+];
+
+const filterOptions = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'complete', label: 'Complete' },
+];
+
+const icons = {
+  check: 'check',
+  edit: 'edit',
+  trash: 'delete',
+  x: 'close',
+};
+
+function IconButton({ label, icon, variant = 'neutral', ...props }) {
+  return (
+    <button
+      className={`icon-btn icon-btn--${variant}`}
+      type="button"
+      aria-label={label}
+      title={label}
+      {...props}
+    >
+      <span className="material-symbols-rounded" aria-hidden="true">
+        {icons[icon]}
+      </span>
+    </button>
+  );
+}
 
 function StreamList() {
   const [title, setTitle] = useState('');
+  const [entries, setEntries] = useState(initialEntries);
+  const [filter, setFilter] = useState('all');
+  const [editingId, setEditingId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState('');
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    const trimmedTitle = title.trim();
+    const trimmedTitle = normalizeTitle(title);
 
     if (!trimmedTitle) {
       setError('Please enter a movie or TV show title.');
@@ -15,20 +59,78 @@ function StreamList() {
       return;
     }
 
-    console.log('StreamList entry:', trimmedTitle);
-    setStatus(`"${trimmedTitle}" was sent to the browser console.`);
+    const entry = createStreamEntry(trimmedTitle);
+    setEntries((currentEntries) => [entry, ...currentEntries]);
+    setStatus(`"${trimmedTitle}" was added to your StreamList.`);
     setTitle('');
+    setError('');
+  };
+
+  const visibleEntries = filterEntries(entries, filter);
+  const completeCount = entries.filter((entry) => entry.isComplete).length;
+  const activeCount = entries.length - completeCount;
+
+  const handleToggleComplete = (id) => {
+    setEntries((currentEntries) =>
+      currentEntries.map((entry) =>
+        entry.id === id ? { ...entry, isComplete: !entry.isComplete } : entry,
+      ),
+    );
+    setStatus('');
+  };
+
+  const handleDelete = (id) => {
+    const entryToDelete = entries.find((entry) => entry.id === id);
+
+    setEntries((currentEntries) =>
+      currentEntries.filter((entry) => entry.id !== id),
+    );
+    setStatus(
+      entryToDelete ? `"${entryToDelete.title}" was removed from your list.` : '',
+    );
+    setError('');
+  };
+
+  const startEditing = (entry) => {
+    setEditingId(entry.id);
+    setEditingTitle(entry.title);
+    setError('');
+    setStatus('');
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditingTitle('');
+    setError('');
+  };
+
+  const saveEdit = (id) => {
+    const updatedTitle = normalizeTitle(editingTitle);
+
+    if (!updatedTitle) {
+      setError('Edited titles cannot be blank.');
+      return;
+    }
+
+    setEntries((currentEntries) =>
+      currentEntries.map((entry) =>
+        entry.id === id ? { ...entry, title: updatedTitle } : entry,
+      ),
+    );
+    setEditingId(null);
+    setEditingTitle('');
+    setStatus(`"${updatedTitle}" was updated.`);
     setError('');
   };
 
   return (
     <section className="streamlist-page">
       <article className="panel">
-        <p className="page-kicker">Homepage</p>
+        <p className="page-kicker">Week 2</p>
         <h2 className="page-title">Build your StreamList</h2>
         <p className="page-copy">
-          Enter a movie or TV show title below. This Week 1 version focuses on React
-          Router navigation, reusable components, user input, and CSS styling.
+          Add movies and shows, then edit, remove, or complete each title as your
+          watch plan changes.
         </p>
 
         <form className="stream-form" onSubmit={handleSubmit}>
@@ -58,11 +160,119 @@ function StreamList() {
         </form>
 
         <p className="helper-text">
-          Submitted titles are logged to the browser console.
+          {entries.length} saved titles. {activeCount} active. {completeCount}{' '}
+          complete.
         </p>
 
         {error ? <p className="message message--error">{error}</p> : null}
         {status ? <p className="message message--success">{status}</p> : null}
+      </article>
+
+      <article className="panel list-panel">
+        <div className="list-header">
+          <div>
+            <p className="page-kicker">Visibility</p>
+            <h3 className="section-title">StreamList entries</h3>
+          </div>
+
+          <div className="filter-tabs" aria-label="Filter StreamList entries">
+            {filterOptions.map((option) => (
+              <button
+                key={option.value}
+                className={
+                  filter === option.value
+                    ? 'filter-tab filter-tab--active'
+                    : 'filter-tab'
+                }
+                type="button"
+                onClick={() => setFilter(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {visibleEntries.length ? (
+          <ul className="entry-list">
+            {visibleEntries.map((entry) => {
+              const isEditing = editingId === entry.id;
+
+              return (
+                <li
+                  className={
+                    entry.isComplete ? 'entry-row entry-row--complete' : 'entry-row'
+                  }
+                  key={entry.id}
+                >
+                  {isEditing ? (
+                    <form
+                      className="edit-form"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        saveEdit(entry.id);
+                      }}
+                    >
+                      <input
+                        className="text-input"
+                        type="text"
+                        aria-label={`Edit ${entry.title}`}
+                        value={editingTitle}
+                        onChange={(event) => setEditingTitle(event.target.value)}
+                      />
+                      <button className="btn btn--primary" type="submit">
+                        Save
+                      </button>
+                      <IconButton
+                        label="Cancel edit"
+                        icon="x"
+                        onClick={cancelEditing}
+                      />
+                    </form>
+                  ) : (
+                    <>
+                      <button
+                        className="entry-status"
+                        type="button"
+                        aria-label={
+                          entry.isComplete
+                            ? `Mark ${entry.title} active`
+                            : `Mark ${entry.title} complete`
+                        }
+                        title={
+                          entry.isComplete ? 'Mark active' : 'Mark complete'
+                        }
+                        onClick={() => handleToggleComplete(entry.id)}
+                      >
+                        <span className="material-symbols-rounded" aria-hidden="true">
+                          {entry.isComplete ? icons.check : 'radio_button_unchecked'}
+                        </span>
+                      </button>
+
+                      <span className="entry-title">{entry.title}</span>
+
+                      <div className="entry-actions">
+                        <IconButton
+                          label={`Edit ${entry.title}`}
+                          icon="edit"
+                          onClick={() => startEditing(entry)}
+                        />
+                        <IconButton
+                          label={`Delete ${entry.title}`}
+                          icon="trash"
+                          variant="danger"
+                          onClick={() => handleDelete(entry.id)}
+                        />
+                      </div>
+                    </>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="empty-state">No titles match this view.</p>
+        )}
       </article>
     </section>
   );
