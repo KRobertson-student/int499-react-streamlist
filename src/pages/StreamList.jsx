@@ -59,7 +59,22 @@ function StreamList() {
       return;
     }
 
+    const isDuplicate = entries.some(
+      (entry) =>
+        normalizeTitle(entry.title).toLowerCase() === trimmedTitle.toLowerCase(),
+    );
+
+    if (isDuplicate) {
+      console.warn('[StreamList] Duplicate entry blocked:', trimmedTitle);
+      setError(`"${trimmedTitle}" is already in your StreamList.`);
+      setStatus('');
+      return;
+    }
+
     const entry = createStreamEntry(trimmedTitle);
+
+    console.log('[StreamList] New user entry:', trimmedTitle);
+
     setEntries((currentEntries) => [entry, ...currentEntries]);
     setStatus(`"${trimmedTitle}" was added to your StreamList.`);
     setTitle('');
@@ -85,6 +100,12 @@ function StreamList() {
     setEntries((currentEntries) =>
       currentEntries.filter((entry) => entry.id !== id),
     );
+
+    console.log(
+      '[StreamList] Deleted entry:',
+      entryToDelete ? entryToDelete.title : id,
+    );
+
     setStatus(
       entryToDelete ? `"${entryToDelete.title}" was removed from your list.` : '',
     );
@@ -112,11 +133,27 @@ function StreamList() {
       return;
     }
 
+    const isDuplicate = entries.some(
+      (entry) =>
+        entry.id !== id &&
+        normalizeTitle(entry.title).toLowerCase() === updatedTitle.toLowerCase(),
+    );
+
+    if (isDuplicate) {
+      console.warn('[StreamList] Duplicate edit blocked:', updatedTitle);
+      setError(`"${updatedTitle}" is already in your StreamList.`);
+      setStatus('');
+      return;
+    }
+
+    console.log('[StreamList] Updated entry:', updatedTitle);
+
     setEntries((currentEntries) =>
       currentEntries.map((entry) =>
         entry.id === id ? { ...entry, title: updatedTitle } : entry,
       ),
     );
+
     setEditingId(null);
     setEditingTitle('');
     setStatus(`"${updatedTitle}" was updated.`);
@@ -201,7 +238,9 @@ function StreamList() {
               return (
                 <li
                   className={
-                    entry.isComplete ? 'entry-row entry-row--complete' : 'entry-row'
+                    entry.isComplete
+                      ? 'entry-row entry-row--complete'
+                      : 'entry-row'
                   }
                   key={entry.id}
                 >
@@ -244,8 +283,13 @@ function StreamList() {
                         }
                         onClick={() => handleToggleComplete(entry.id)}
                       >
-                        <span className="material-symbols-rounded" aria-hidden="true">
-                          {entry.isComplete ? icons.check : 'radio_button_unchecked'}
+                        <span
+                          className="material-symbols-rounded"
+                          aria-hidden="true"
+                        >
+                          {entry.isComplete
+                            ? icons.check
+                            : 'radio_button_unchecked'}
                         </span>
                       </button>
 
