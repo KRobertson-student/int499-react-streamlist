@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   createStreamEntry,
   filterEntries,
+  loadStreamEntries,
   normalizeTitle,
+  saveStreamEntries,
 } from '../streamListUtils.js';
 
 const initialEntries = [
@@ -24,6 +26,53 @@ const icons = {
   x: 'close',
 };
 
+const FILTER_STORAGE_KEY = 'streamlist_filter';
+const TITLE_DRAFT_STORAGE_KEY = 'streamlist_title_draft';
+
+function getBrowserStorage() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return window.localStorage;
+}
+
+function loadStoredString(key, fallbackValue) {
+  const storage = getBrowserStorage();
+
+  if (!storage) {
+    return fallbackValue;
+  }
+
+  try {
+    return storage.getItem(key) || fallbackValue;
+  } catch {
+    return fallbackValue;
+  }
+}
+
+function saveStoredString(key, value) {
+  const storage = getBrowserStorage();
+
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // Browsers can block localStorage in private or restricted contexts.
+  }
+}
+
+function loadStoredFilter() {
+  const savedFilter = loadStoredString(FILTER_STORAGE_KEY, 'all');
+
+  return filterOptions.some((option) => option.value === savedFilter)
+    ? savedFilter
+    : 'all';
+}
+
 function IconButton({ label, icon, variant = 'neutral', ...props }) {
   return (
     <button
@@ -41,13 +90,29 @@ function IconButton({ label, icon, variant = 'neutral', ...props }) {
 }
 
 function StreamList() {
-  const [title, setTitle] = useState('');
-  const [entries, setEntries] = useState(initialEntries);
-  const [filter, setFilter] = useState('all');
+  const [title, setTitle] = useState(() =>
+    loadStoredString(TITLE_DRAFT_STORAGE_KEY, ''),
+  );
+  const [entries, setEntries] = useState(() =>
+    loadStreamEntries(getBrowserStorage(), initialEntries),
+  );
+  const [filter, setFilter] = useState(loadStoredFilter);
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
+
+  useEffect(() => {
+    saveStreamEntries(getBrowserStorage(), entries);
+  }, [entries]);
+
+  useEffect(() => {
+    saveStoredString(FILTER_STORAGE_KEY, filter);
+  }, [filter]);
+
+  useEffect(() => {
+    saveStoredString(TITLE_DRAFT_STORAGE_KEY, title);
+  }, [title]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -167,7 +232,7 @@ function StreamList() {
         <h2 className="page-title">Build your StreamList</h2>
         <p className="page-copy">
           Add movies and shows, then edit, remove, or complete each title as your
-          watch plan changes.
+          watch plan changes. Your saved titles stay available after a refresh.
         </p>
 
         <form className="stream-form" onSubmit={handleSubmit}>

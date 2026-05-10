@@ -21,7 +21,7 @@ To review the source code, browse the files in this GitHub repository. The main 
 - The StreamList homepage accepts a movie or TV show title from the user.
 - Submitted titles were logged to the browser console for the first event-handling version.
 - The app includes navigation for StreamList, Movies, Cart, and About pages.
-- Movies and Cart are placeholder pages for Week 4.
+- Movies and Cart were initially included as routed pages for later weekly work.
 - About is a placeholder page for Week 5.
 
 ---
@@ -38,6 +38,18 @@ To review the source code, browse the files in this GitHub repository. The main 
 - Custom CSS styles the list manager, action buttons, completion state, edit form, and responsive layout.
 - A small Node test suite verifies the title trimming, entry creation, and list filtering helper behavior.
 
+---
+
+### Week 3
+
+- The Movies route now searches the TMDB Search Movie API on a separate page.
+- Movie results display the title, release year, TMDB rating, overview, and poster artwork when TMDB provides it.
+- Users can select a movie result to review more details in a focused detail panel.
+- Recent movie searches, the current search, loaded results, and the selected movie are stored in localStorage for refresh persistence.
+- StreamList entries, the current filter, and the draft title are stored in localStorage so the Week 2 list no longer resets after a refresh.
+- The Movies page includes the required TMDB attribution notice.
+- Helper tests now cover localStorage persistence utilities, TMDB URL creation, TMDB result formatting, and recent-search behavior.
+
 ## Run the Project
 
 These steps are only needed if you want to run the project locally.
@@ -47,6 +59,14 @@ Install dependencies:
 ```bash
 npm install
 ```
+
+Create a local `.env` file with a TMDB API key before using the Movies search page:
+
+```bash
+VITE_TMDB_API_KEY=your_tmdb_api_key
+```
+
+For the deployed GitHub Pages build, add the same value as a repository secret named `VITE_TMDB_API_KEY`.
 
 Start the development server:
 
