@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   createStreamEntry,
   filterEntries,
+  hasDuplicateTitle,
   loadStreamEntries,
   normalizeTitle,
   saveStreamEntries,
@@ -124,12 +125,7 @@ function StreamList() {
       return;
     }
 
-    const isDuplicate = entries.some(
-      (entry) =>
-        normalizeTitle(entry.title).toLowerCase() === trimmedTitle.toLowerCase(),
-    );
-
-    if (isDuplicate) {
+    if (hasDuplicateTitle(entries, trimmedTitle)) {
       console.warn('[StreamList] Duplicate entry blocked:', trimmedTitle);
       setError(`"${trimmedTitle}" is already in your StreamList.`);
       setStatus('');
@@ -198,13 +194,7 @@ function StreamList() {
       return;
     }
 
-    const isDuplicate = entries.some(
-      (entry) =>
-        entry.id !== id &&
-        normalizeTitle(entry.title).toLowerCase() === updatedTitle.toLowerCase(),
-    );
-
-    if (isDuplicate) {
+    if (hasDuplicateTitle(entries, updatedTitle, id)) {
       console.warn('[StreamList] Duplicate edit blocked:', updatedTitle);
       setError(`"${updatedTitle}" is already in your StreamList.`);
       setStatus('');

@@ -5,6 +5,7 @@ import {
   buildTmdbSearchUrl,
   createStreamEntry,
   filterEntries,
+  hasDuplicateTitle,
   loadStreamEntries,
   mapTmdbMovieResult,
   normalizeTitle,
@@ -61,6 +62,26 @@ test('filterEntries returns entries for the requested status view', () => {
   assert.deepEqual(filterEntries(entries, 'active'), [entries[0]]);
   assert.deepEqual(filterEntries(entries, 'complete'), [entries[1]]);
   assert.deepEqual(filterEntries(entries, 'all'), entries);
+});
+
+test('hasDuplicateTitle finds duplicate titles regardless of spacing or case', () => {
+  const entries = [
+    { id: 1, title: 'The Bear', isComplete: false },
+    { id: 2, title: 'Severance', isComplete: false },
+  ];
+
+  assert.equal(hasDuplicateTitle(entries, '  the bear  '), true);
+  assert.equal(hasDuplicateTitle(entries, 'Abbott Elementary'), false);
+});
+
+test('hasDuplicateTitle ignores the entry currently being edited', () => {
+  const entries = [
+    { id: 1, title: 'The Bear', isComplete: false },
+    { id: 2, title: 'Severance', isComplete: false },
+  ];
+
+  assert.equal(hasDuplicateTitle(entries, 'the bear', 1), false);
+  assert.equal(hasDuplicateTitle(entries, 'the bear', 2), true);
 });
 
 test('loadStreamEntries restores valid entries from localStorage', () => {

@@ -32,6 +32,16 @@ export function filterEntries(entries, filter) {
   return entries;
 }
 
+export function hasDuplicateTitle(entries, title, ignoredId = null) {
+  const normalizedTitle = normalizeTitle(title).toLowerCase();
+
+  return entries.some(
+    (entry) =>
+      entry.id !== ignoredId &&
+      normalizeTitle(entry.title).toLowerCase() === normalizedTitle,
+  );
+}
+
 function isStreamEntry(value) {
   return (
     value !== null &&

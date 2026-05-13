@@ -50,6 +50,22 @@ To review the source code, browse the files in this GitHub repository. The main 
 - The Movies page includes the required TMDB attribution notice.
 - Helper tests now cover localStorage persistence utilities, TMDB URL creation, TMDB result formatting, and recent-search behavior.
 
+---
+
+### Week 4 AI Testing: Part 1
+
+- The React application was reviewed with OpenAI Codex as the AI coding assistant.
+- The review covered the routed app structure, StreamList title-management workflow, TMDB movie-search workflow, helper utilities, persistence behavior, and existing automated tests.
+- Existing verification was run before reconstruction: `npm test` passed 11 tests, and `npm run build` completed successfully.
+- Codex recommended extracting repeated duplicate-title validation from the add-title and edit-title handlers into a reusable helper.
+- The recommendation was implemented with a new `hasDuplicateTitle` helper in `src/streamListUtils.js`.
+- `src/pages/StreamList.jsx` now uses the helper for both new entries and edited entries, reducing repeated logic while preserving the same user-facing validation behavior.
+- Two helper tests were added to confirm duplicate titles are detected regardless of spacing or letter case, and that the entry currently being edited is not falsely treated as its own duplicate.
+- Codex also recommended adding a graceful fallback for unmatched routes.
+- `src/App.jsx` now includes a catch-all route, and `src/pages/NotFound.jsx` provides a clear page-unavailable message with a link back to StreamList.
+- Final verification after reconstruction: `npm test` passed 13 tests, and `npm run build` completed successfully.
+- Presentation discussion points: explain which AI tool was used, what areas of the app were tested, what recommendations were implemented, why repeated validation was extracted, why the not-found route improves the user experience, and how the final test/build results support the quality of the reconstruction.
+
 ## Run the Project
 
 These steps are only needed if you want to run the project locally.
