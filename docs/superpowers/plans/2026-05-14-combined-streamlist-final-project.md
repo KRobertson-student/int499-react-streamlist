@@ -73,6 +73,27 @@ Get-ChildItem -LiteralPath 'C:\Users\rober\OneDrive\UAGC\INT 499\Final Project' 
 
 Expected: includes `src`, `docs`, `package.json`, `package-lock.json`, `vite.config.js`, `index.html`, `.gitignore`, and `README.md`; excludes `.git`, `node_modules`, and `dist`.
 
+- [ ] **Step 5: Install dependencies in the final project folder**
+
+Run from `C:\Users\rober\OneDrive\UAGC\INT 499\Final Project`:
+
+```powershell
+npm install
+```
+
+Expected: dependencies installed and `node_modules` created locally.
+
+- [ ] **Step 6: Verify copied app baseline**
+
+Run:
+
+```powershell
+npm test
+npm run build
+```
+
+Expected: both PASS before cart integration begins.
+
 ## Task 2: Initialize Local Git Baseline
 
 **Files:**
