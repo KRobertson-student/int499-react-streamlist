@@ -11,6 +11,16 @@ import {
   normalizeTitle,
   saveStreamEntries,
 } from './streamListUtils.js';
+import {
+  addItemToCart,
+  calculateCartTotal,
+  getCartItemCount,
+  loadCartItems,
+  removeItemFromCart,
+  saveCartItems,
+  subscriptionWarning,
+  updateCartQuantity,
+} from './cartLogic.js';
 
 function createMemoryStorage(initialValues = {}) {
   const values = new Map(Object.entries(initialValues));
@@ -24,6 +34,33 @@ function createMemoryStorage(initialValues = {}) {
     },
   };
 }
+
+const basicSubscription = {
+  id: 1,
+  category: 'subscription',
+  service: 'Basic Subscription',
+  serviceInfo: 'For one user',
+  price: 4.99,
+  img: 'basic.svg',
+};
+
+const premiumSubscription = {
+  id: 3,
+  category: 'subscription',
+  service: 'Premium Subscription',
+  serviceInfo: 'Share with the world',
+  price: 12.99,
+  img: 'premium.svg',
+};
+
+const shirt = {
+  id: 5,
+  category: 'accessory',
+  service: 'EZ Tech T-Shirt',
+  serviceInfo: 'Show your list to the world',
+  price: 25.99,
+  img: 'shirt.svg',
+};
 
 test('normalizeTitle trims extra user input spacing', () => {
   assert.equal(normalizeTitle('  Severance  '), 'Severance');
@@ -170,4 +207,88 @@ test('addRecentMovieSearch deduplicates and limits saved search terms', () => {
   );
 
   assert.deepEqual(searches, ['dune', 'Alien', 'Severance', 'The Bear', 'Sinners']);
+});
+
+test('addItemToCart adds one subscription and blocks a second subscription', () => {
+  const firstResult = addItemToCart([], basicSubscription);
+  const secondResult = addItemToCart(firstResult.cart, premiumSubscription);
+
+  assert.deepEqual(firstResult.cart, [{ ...basicSubscription, quantity: 1 }]);
+  assert.equal(firstResult.message, '');
+  assert.deepEqual(secondResult.cart, firstResult.cart);
+  assert.equal(secondResult.message, subscriptionWarning);
+});
+
+test('addItemToCart increments accessory quantity when added again', () => {
+  const firstResult = addItemToCart([], shirt);
+  const secondResult = addItemToCart(firstResult.cart, shirt);
+
+  assert.deepEqual(secondResult.cart, [{ ...shirt, quantity: 2 }]);
+  assert.equal(secondResult.message, '');
+});
+
+test('updateCartQuantity updates accessories and removes items at zero', () => {
+  const cart = [
+    { ...basicSubscription, quantity: 1 },
+    { ...shirt, quantity: 2 },
+  ];
+
+  const updatedCart = updateCartQuantity(cart, shirt.id, 3);
+  const removedCart = updateCartQuantity(updatedCart, shirt.id, 0);
+
+  assert.equal(updatedCart.find((item) => item.id === shirt.id).quantity, 3);
+  assert.deepEqual(removedCart, [{ ...basicSubscription, quantity: 1 }]);
+});
+
+test('updateCartQuantity keeps subscription quantity at one', () => {
+  const cart = [{ ...basicSubscription, quantity: 1 }];
+
+  assert.deepEqual(updateCartQuantity(cart, basicSubscription.id, 2), cart);
+});
+
+test('removeItemFromCart removes only the matching item', () => {
+  const cart = [
+    { ...basicSubscription, quantity: 1 },
+    { ...shirt, quantity: 2 },
+  ];
+
+  assert.deepEqual(removeItemFromCart(cart, basicSubscription.id), [
+    { ...shirt, quantity: 2 },
+  ]);
+});
+
+test('getCartItemCount and calculateCartTotal summarize cart contents', () => {
+  const cart = [
+    { ...basicSubscription, quantity: 1 },
+    { ...shirt, quantity: 3 },
+  ];
+
+  assert.equal(getCartItemCount(cart), 4);
+  assert.equal(calculateCartTotal(cart), 82.96);
+});
+
+test('loadCartItems restores valid cart data from storage', () => {
+  const savedCart = [{ ...shirt, quantity: 2 }];
+  const storage = createMemoryStorage({
+    streamlist_cart: JSON.stringify(savedCart),
+  });
+
+  assert.deepEqual(loadCartItems(storage), savedCart);
+});
+
+test('loadCartItems falls back when stored cart data is invalid', () => {
+  const fallbackCart = [{ ...basicSubscription, quantity: 1 }];
+  const storage = createMemoryStorage({
+    streamlist_cart: JSON.stringify([{ id: 1, service: '', price: 'free' }]),
+  });
+
+  assert.deepEqual(loadCartItems(storage, fallbackCart), fallbackCart);
+});
+
+test('saveCartItems stores cart data and reports success', () => {
+  const storage = createMemoryStorage();
+  const cart = [{ ...shirt, quantity: 2 }];
+
+  assert.equal(saveCartItems(storage, cart), true);
+  assert.equal(storage.getItem('streamlist_cart'), JSON.stringify(cart));
 });
